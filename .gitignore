@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.py[cod]
+.env
+credentials.json
+token.json
+client_secret*.json
+*.log
+dataset/*
+!dataset/.gitkeep
+model/*
+!model/.gitkeep

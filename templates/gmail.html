@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MailGuard | Gmail Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="page-shell">
+  <header class="topbar">
+    <a class="brand-link" href="{{ url_for('index') }}"><div class="brand-mark">M</div></a>
+    <div><div class="brand-name">MailGuard</div><div class="brand-subtitle">READ-ONLY GMAIL ANALYSIS</div></div>
+    <a class="nav-link" href="{{ url_for('index') }}">Text detector</a>
+  </header>
+  <main>
+    <section class="hero">
+      <div class="eyebrow">GMAIL INTEGRATION</div>
+      <h1>Your inbox,<br><span>analyzed locally.</span></h1>
+      <p>MailGuard reads recent Inbox messages with Gmail's read-only API and predicts whether their text resembles spam. It never moves, labels, deletes, or sends emails.</p>
+    </section>
+    {% with notices = get_flashed_messages(with_categories=true) %}
+      {% if notices %}{% for category, notice in notices %}
+        <div class="alert {{ 'error' if category == 'error' else 'success-alert' }}">{{ notice }}</div>
+      {% endfor %}{% endif %}
+    {% endwith %}
+    {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+    {% if not connected %}
+      <section class="panel connect-panel">
+        <div class="heading-icon">✉</div>
+        <h2>Connect your Gmail account</h2>
+        <p>You'll be redirected to Google to sign in and explicitly grant read-only access. Your email contents are fetched by this local app and are not intentionally sent to a third-party classification service.</p>
+        <a class="primary-button button-link" href="{{ url_for('connect_gmail') }}">Connect Gmail securely <span>→</span></a>
+        <p class="small-note">Requires a Google Cloud OAuth client file named <code>credentials.json</code>. Follow the setup instructions in README.md first.</p>
+      </section>
+    {% else %}
+      <section class="panel mailbox-panel">
+        <div><div class="panel-kicker">CONNECTED ACCOUNT</div><h2>{{ mailbox_email or 'Gmail connected' }}</h2><p>Showing up to 30 recent Inbox messages.</p></div>
+        <form method="post" action="{{ url_for('disconnect_gmail') }}" onsubmit="return confirm('Disconnect Gmail from MailGuard? This removes the local token only and does not modify emails.');">
+          <button class="secondary-button" type="submit">Disconnect</button>
+        </form>
+      </section>
+      {% if not metrics.get('dataset_is_real', false) %}
+        <div class="alert error"><strong>Model warning:</strong> the current model may have been trained on a tiny fallback dataset. Train with a real email corpus before trusting these predictions.</div>
+      {% elif 'SMS' in metrics.get('dataset', '') %}
+        <div class="alert error"><strong>Dataset warning:</strong> the current model was trained on SMS text, not real emails. Use the email training guide before evaluating real Gmail messages.</div>
+      {% endif %}
+      <section class="stats-grid">
+        <div class="panel stat-card"><div class="panel-kicker">SCANNED</div><div class="stat-number">{{ messages|length }}</div><div class="stat-caption">recent inbox messages</div></div>
+        <div class="panel stat-card"><div class="panel-kicker">PREDICTED SPAM</div><div class="stat-number danger-text">{{ spam_messages|length }}</div><div class="stat-caption">review these predictions</div></div>
+        <div class="panel stat-card"><div class="panel-kicker">LIKELY LEGITIMATE</div><div class="stat-number success-text">{{ ham_messages|length }}</div><div class="stat-caption">model prediction only</div></div>
+      </section>
+      <section class="panel email-list-panel">
+        <div class="panel-heading"><div><h2>Predicted spam</h2><p>These messages resemble the model's learned spam patterns.</p></div><span class="history-count">{{ spam_messages|length }}</span></div>
+        {% if spam_messages %}
+          {% for email in spam_messages %}{% include 'email_card.html' %}{% endfor %}
+        {% else %}<div class="empty-history">No messages were predicted as spam in this scan.</div>{% endif %}
+      </section>
+      <section class="panel email-list-panel">
+        <div class="panel-heading"><div><h2>Likely legitimate</h2><p>Still review suspicious senders and links carefully.</p></div><span class="history-count">{{ ham_messages|length }}</span></div>
+        {% if ham_messages %}
+          {% for email in ham_messages %}{% include 'email_card.html' %}{% endfor %}
+        {% else %}<div class="empty-history">No messages were classified as likely legitimate.</div>{% endif %}
+      </section>
+      {% if unknown_messages %}
+      <section class="panel email-list-panel">
+        <div class="panel-heading"><div><h2>Could not classify</h2><p>These messages did not have usable text or a loaded model.</p></div><span class="history-count">{{ unknown_messages|length }}</span></div>
+        {% for email in unknown_messages %}{% include 'email_card.html' %}{% endfor %}
+      </section>
+      {% endif %}
+    {% endif %}
+  </main>
+  <footer><span>MailGuard · College Machine Learning Project</span><span>Read-only Gmail API · No mailbox changes</span></footer>
+</div>
+</body>
+</html>

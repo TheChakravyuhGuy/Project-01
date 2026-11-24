@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MailGuard | Spam Detection</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a href="/gmail" class="gmail-link">
+        ✉ Connect Gmail
+      </a>
+      <div class="brand-mark">M</div>
+      <div><div class="brand-name">MailGuard</div><div class="brand-subtitle">MACHINE LEARNING SPAM DETECTOR</div></div>
+      <span class="status"><span class="status-dot"></span> Local demo</span>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="eyebrow">SMART MESSAGE ANALYSIS</div>
+        <h1>Keep the noise out.<br><span>Spot spam faster.</span></h1>
+        <p>Paste a message below and let the machine-learning model classify it as spam or legitimate.</p>
+      </section>
+
+      <section class="main-grid">
+        <div class="panel input-panel">
+          <div class="panel-heading">
+            <div><h2>Check a message</h2><p>Paste email text or a message to analyze.</p></div>
+            <div class="heading-icon">✉</div>
+          </div>
+          <form method="post" action="/">
+            <label for="message">MESSAGE CONTENT</label>
+            <textarea id="message" name="message" maxlength="5000" placeholder="Example: Congratulations! You have won a prize. Click here to claim..." required>{{ message }}</textarea>
+            <div class="input-foot"><span>Up to 5,000 characters</span><span id="char-count">0 / 5000</span></div>
+            <button class="primary-button" type="submit">Analyze message <span>→</span></button>
+          </form>
+
+          {% if error %}
+          <div class="alert error" role="alert">{{ error }}</div>
+          {% endif %}
+          {% if result %}
+          <div class="result-card {{ 'spam' if result == 'SPAM' else 'ham' }}" role="status">
+            <div class="result-icon">{{ '!' if result == 'SPAM' else '✓' }}</div>
+            <div class="result-copy">
+              <div class="result-label">MODEL PREDICTION</div>
+              <h3>{{ result }}</h3>
+              <p>{{ 'This message resembles patterns the model learned from spam examples.' if result == 'SPAM' else 'The model did not classify this message as spam.' }}</p>
+              {% if score is not none %}<div class="score-line">Estimated spam score: <strong>{{ score }}%</strong></div>{% endif %}
+            </div>
+          </div>
+          <p class="disclaimer">This is a prediction, not a guarantee that a message is safe. Avoid opening suspicious links or attachments.</p>
+          {% endif %}
+        </div>
+
+        <aside class="side-column">
+          <div class="panel how-panel">
+            <div class="panel-kicker">HOW IT WORKS</div>
+            <h2>From text to prediction</h2>
+            <div class="steps">
+              <div class="step"><span>01</span><div><strong>Text processing</strong><p>TF-IDF turns words into numerical features.</p></div></div>
+              <div class="step"><span>02</span><div><strong>ML classification</strong><p>The trained model compares learned patterns.</p></div></div>
+              <div class="step"><span>03</span><div><strong>Result</strong><p>The app displays spam or not spam.</p></div></div>
+            </div>
+          </div>
+
+          <div class="panel model-panel">
+            <div class="panel-kicker">MODEL INFORMATION</div>
+            <div class="model-name">{{ metrics.get('selected_model', 'Train the model first') }}</div>
+            <div class="metric-row"><span>Training dataset</span><strong>{{ metrics.get('total_messages', '—') }}</strong></div>
+            <div class="metric-row"><span>Spam examples</span><strong>{{ metrics.get('spam_messages', '—') }}</strong></div>
+            <div class="metric-row"><span>Legitimate examples</span><strong>{{ metrics.get('ham_messages', '—') }}</strong></div>
+            {% if metrics.get('warning') %}
+              <p class="warning-note">{{ metrics.get('warning') }}</p>
+            {% endif %}
+            {% set chosen = metrics.get('results', {}).get(metrics.get('selected_model', ''), {}) %}
+            {% if chosen %}
+              <div class="metric-row"><span>Test accuracy</span><strong>{{ (chosen.get('accuracy', 0) * 100)|round(1) }}%</strong></div>
+              <div class="metric-row"><span>Spam F1-score</span><strong>{{ (chosen.get('f1_spam', 0) * 100)|round(1) }}%</strong></div>
+            {% endif %}
+            <p class="small-note">Metrics are from the held-out test split. Performance on new email data may differ.</p>
+          </div>
+        </aside>
+      </section>
+
+      <section class="panel history-panel">
+        <div class="panel-heading"><div><h2>Recent checks</h2><p>Last 10 predictions in this running session.</p></div><span class="history-count">{{ history|length }} / 10</span></div>
+        {% if history %}
+          <div class="history-list">
+          {% for item in history %}
+            <div class="history-item">
+              <span class="history-badge {{ 'badge-spam' if item.result == 'SPAM' else 'badge-ham' }}">{{ item.result }}</span>
+              <span class="history-message">{{ item.message }}</span>
+              <time>{{ item.time }}</time>
+            </div>
+          {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-history">Your analyzed messages will appear here.</div>
+        {% endif %}
+      </section>
+    </main>
+    <footer><span>MailGuard · College Machine Learning Project</span><span>Python · Flask · Scikit-learn</span></footer>
+  </div>
+  <script>
+    const field = document.getElementById("message");
+    const counter = document.getElementById("char-count");
+    function updateCount() { counter.textContent = field.value.length + " / 5000"; }
+    field.addEventListener("input", updateCount);
+    updateCount();
+  </script>
+</body>
+</html>

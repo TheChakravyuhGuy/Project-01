@@ -1,0 +1,10 @@
+<article class="email-card">
+  <div class="email-card-top">
+    <span class="history-badge {{ 'badge-spam' if email.prediction == 'SPAM' else 'badge-ham' }}">{{ email.prediction }}</span>
+    <span class="email-date">{{ email.date }}</span>
+  </div>
+  <h3>{{ email.subject }}</h3>
+  <div class="email-sender">{{ email.sender }}</div>
+  <p>{{ email.body_preview or email.snippet }}</p>
+  {% if email.spam_score is not none %}<div class="email-score">Model spam score: <strong>{{ email.spam_score }}%</strong> <span>(not a guarantee or calibrated risk score)</span></div>{% endif %}
+</article>
